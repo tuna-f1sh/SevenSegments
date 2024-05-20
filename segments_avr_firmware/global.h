@@ -11,8 +11,6 @@
 
 #include <avr/io.h>
 
-#define F_CPU 16000000L
-
 #define LED_PIN 5
 #define LED_DDR DDRB
 
@@ -36,6 +34,16 @@
 #define MOTOR_C3_PORT PORTB
 
 
+#ifndef MAG_TRIGGER_INVERT
+#define MAG_TRIGGER_INVERT    1
+#endif
+
+#if MAG_TRIGGER_INVERT == 1
+#define MAG_TRIGGER_THRESHOLD 565
+#define MIN_VAL_RESET         0
+#else
 #define MAG_TRIGGER_THRESHOLD 435
+#define MIN_VAL_RESET         0xFFFF
+#endif
 
 #endif /* OPTIONS_H_ */

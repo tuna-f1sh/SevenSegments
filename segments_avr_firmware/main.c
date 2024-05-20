@@ -34,7 +34,7 @@ uint8_t maglock = 1;
 
 volatile uint16_t analog = 0;
 volatile uint8_t  sampling_enabled = 1;
-volatile uint16_t sampling_min_val = 0xffff;
+volatile uint16_t sampling_min_val = MIN_VAL_RESET;
 volatile int16_t  sampling_min_pos = 0;
 volatile uint16_t capture_position = 0;
 
@@ -56,15 +56,15 @@ static uint8_t inside_sampling_window = 0;
 	analog = val;
 	if(sampling_enabled) 
 	{		
-		if(val < MAG_TRIGGER_THRESHOLD)
+    if((val > MAG_TRIGGER_THRESHOLD && MAG_TRIGGER_INVERT) || (val < MAG_TRIGGER_THRESHOLD && !MAG_TRIGGER_INVERT))
 		{
 			inside_sampling_window = 1;
-			// look for the smallest value (max magnetic field)
-			if(val < sampling_min_val) 
-			{
-				sampling_min_val = val;
-				sampling_min_pos = capture_position;
-			}
+			// look for the value with max magnetic field
+			if ((val > sampling_min_val && MAG_TRIGGER_INVERT)  || (val < sampling_min_val && !MAG_TRIGGER_INVERT))
+      {
+        sampling_min_val = val;
+        sampling_min_pos = capture_position;
+      }
 		}
 		else
 		{
@@ -86,7 +86,7 @@ void move_to_digit(uint8_t digit)
 		new_pos += STEPS_PER_ROUNDTRIP;
 	set_motor_target(new_pos);
 	if(debug)
-		printf("new pos: cur:%d trg:%d\n", get_motor_position(), get_motor_target());
+		printf("new pos: cur:%d trg:%d\n\r", get_motor_position(), get_motor_target());
 }
 
 
@@ -95,7 +95,7 @@ void handle_position_feedback()
 {
 
 	// sampling done, let's see what it looks like
-	if(!sampling_enabled && sampling_min_val < 0xffff) {
+	if(!sampling_enabled && sampling_min_val != MIN_VAL_RESET) {
 	
 		if(maglock)
 		{	
@@ -106,12 +106,12 @@ void handle_position_feedback()
 				position_deviation = -sampling_min_pos;
 
 			if(debug)
-				printf("shifting: cur:%d trg:%d dev:%d\n", get_motor_position(), get_motor_target(), position_deviation);	
+				printf("shifting: cur:%d trg:%d dev:%d\n\r", get_motor_position(), get_motor_target(), position_deviation);	
 				
 			shift_motor(position_deviation);
 		}		
 		// switch sampling back on
-		sampling_min_val = 0xffff;
+		sampling_min_val = MIN_VAL_RESET;
 		sampling_min_pos=0;
 		sampling_enabled = 1;
 		maglock = 1;
@@ -168,10 +168,10 @@ static uint8_t queue_sz = 0;
 			{
 				if(!debug) // switch into debug mode 
 				{
-					printf("debug mode\n");
-					printf("digit offset=%d\n", digit_offset);
-					printf("current pos: %d\n", get_motor_position());
-					printf("steps per digit: %d\n", STEPS_PER_DIGIT);
+					printf("debug mode\n\r");
+					printf("digit offset=%d\n\r", digit_offset);
+					printf("current pos: %d\n\r", get_motor_position());
+					printf("steps per digit: %d\n\r", STEPS_PER_DIGIT);
 					debug = 1;
 				}
 			}
@@ -224,16 +224,18 @@ uint16_t count = 1;
 	
 
 	uint16_t mag = adc_capture(0); 
-	if(mag <= MAG_TRIGGER_THRESHOLD) { // if we wake up over the magnet, we cannot trust the minimum value calculation, so maglock will throw away the current measurement run
+	if ((mag >= MAG_TRIGGER_THRESHOLD && MAG_TRIGGER_INVERT) || (mag <= MAG_TRIGGER_THRESHOLD && MAG_TRIGGER_INVERT)) { // if we wake up over the magnet, we cannot trust the minimum value calculation, so maglock will throw away the current measurement run
 		maglock = 0;
 		set_motor_position(-2*STEPS_PER_ROUNDTRIP);
 		
 		if(debug)
-			printf("mag=%d\n", mag);
+			printf("mag=%d\n\r", mag);
 	}
 
 
-	//move_to_digit(5);
+	// will home deviation
+	move_to_digit(5);
+
     // main loop
     while (1) 
     {
@@ -251,7 +253,7 @@ uint16_t count = 1;
 		count++;
 
 		if(debug && count%2==0 && motor_on)
-			printf("pos=%d trg=%d dev=%d, adc=%d\n", get_motor_position(), get_motor_target(), position_deviation, analog);
+			printf("pos=%d trg=%d dev=%d, adc=%d\n\r", get_motor_position(), get_motor_target(), position_deviation, analog);
 
     }
 }
