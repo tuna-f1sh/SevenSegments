@@ -16,6 +16,11 @@
 
 // uncomment to reverse the direction of the motor, NB. is has to rotate counter clockwise
 #define MOTOR_REVERSE
+// 0 to only forward digit once motor is off; helps reduce current load
+// by only having one motor active in chain at a time
+#ifndef DEFAULT_FORWARD_ALWAYS
+#define DEFAULT_FORWARD_ALWAYS   0
+#endif
 
 #define MOTOR_C0_PIN  5
 #define MOTOR_C0_DDR  DDRD

@@ -1,0 +1,13 @@
+[Unit]
+Description=Send time to mechanical seven segment sisplay via serial
+After=multi-user.target
+
+[Service]
+Type=simple
+User=pi
+ExecStart=/usr/bin/python3 /home/pi/seven-time.py
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target

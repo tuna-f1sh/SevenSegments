@@ -31,6 +31,7 @@ int16_t position_deviation = 0;					  // once a magnetic event is detected the d
 
 int8_t debug = 0;
 uint8_t maglock = 1;
+static int8_t forward_always = DEFAULT_FORWARD_ALWAYS;
 
 volatile uint16_t analog = 0;
 volatile uint8_t  sampling_enabled = 1;
@@ -153,15 +154,25 @@ static uint8_t queue_sz = 0;
 				// forward remaining digits to next segment, but later
 				if(msg_size > 4) {  
 					uart_buff_rx[msg_size-2] = '\n';
-					//uart_send_buffered(uart_buff_rx, msg_size-1);
-					memcpy(queued, uart_buff_rx, msg_size-1);
-					queue_sz = msg_size-1;
+					if (forward_always) {
+					  uart_send_buffered(uart_buff_rx, msg_size-1);
+          } else {
+            memcpy(queued, uart_buff_rx, msg_size-1);
+            queue_sz = msg_size-1;
+          }
 				}
 			}
 			else if(uart_buff_rx[1] == '%') { // message forwarding
 				uart_buff_rx[1] = '$';
 				uart_send_buffered(&uart_buff_rx[1], msg_size-1);
 			}
+
+			// set forward always
+      if (uart_buff_rx[1] == 'f' && uart_buff_rx[2] == 'a') {
+        forward_always = uart_buff_rx[3] == '1' ? 1 : 0;
+        // send to others
+        uart_send_buffered(uart_buff_rx, msg_size);
+      }
 			
 			if( (uart_buff_rx[1] == 'd' && uart_buff_rx[2] == 'b' && uart_buff_rx[3] == 'g') ||
 					((PINB & _BV(3)) == 0) ) 
@@ -234,7 +245,7 @@ uint16_t count = 1;
 
 
 	// will home deviation
-	move_to_digit(5);
+	/*move_to_digit(5);*/
 
     // main loop
     while (1) 
